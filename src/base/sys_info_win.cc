@@ -84,7 +84,7 @@ std::string SysInfo::OperatingSystemVersion() {
 
 // TODO: Implement OperatingSystemVersionComplete, which would include
 // patchlevel/service pack number.
-// See chrome/browser/feedback/feedback_util.h, FeedbackUtil::SetOSVersion.
+// See chrome/content/feedback/feedback_util.h, FeedbackUtil::SetOSVersion.
 
 // static
 std::string SysInfo::OperatingSystemArchitecture() {
