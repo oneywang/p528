@@ -48,6 +48,11 @@
 #include "chrome/browser/abstract_class.h"
 #include "base/debug/dump_without_crashing.h"
 
+#include <QString>
+#include <QApplication>
+#include <QDialog>
+#include <QLabel>
+
 using content::BrowserThread;
 
 // BrowserMainParts ------------------------------------------------------------
@@ -136,7 +141,7 @@ void ChromeBrowserMainParts::PreMainMessageLoopRun() {
 //   PostProfileInit()
 //   ... additional setup
 //   PreBrowserStart()
-//   ... browser_creator_->Start (OR parameters().ui_task->Run())
+//   ... browser_creator_->Start
 //   PostBrowserStart()
 
 void ChromeBrowserMainParts::PreProfileInit() {
@@ -177,7 +182,16 @@ void ChromeBrowserMainParts::TestBreakpad(){
   //ok<-__debreakbreak
   //PureCallCrash();
 
+  //ok
   //base::debug::DumpWithoutCrashing();
+
+  //ok
+  QString str = QString::fromWCharArray(L"HelloQt");
+  LOG(INFO) << str.toStdString();
+  
+  //int argc = 0;
+  //char** argv = NULL;
+  //(new QCoreApplication(argc, argv))->exec();
 }
 
 int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
@@ -204,12 +218,6 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
 
   PostBrowserStart();
 
-  if (parameters().ui_task) {
-    parameters().ui_task->Run();
-    delete parameters().ui_task;
-    run_message_loop_ = false;
-  }
-
   return result_code_;
 }
 
@@ -222,7 +230,17 @@ bool ChromeBrowserMainParts::MainMessageLoopRun(int* result_code) {
   DCHECK(base::MessageLoopForUI::IsCurrent());
   base::RunLoop run_loop;
 
-  run_loop.Run();
+  //run_loop.Run();
+
+  int argc = 0;
+  char** argv = NULL;
+  QApplication a(argc, argv);
+
+  QDialog *dlg = new QDialog();
+  QLabel *label = new QLabel(dlg);
+  label->setText("HelloQt");
+  dlg->show();
+  a.exec();
 
   return true;
 }

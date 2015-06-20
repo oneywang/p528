@@ -55,7 +55,7 @@ bool ChromeMainDelegate::BasicStartupComplete(int* exit_code) {
     file_state = logging::DELETE_OLD_LOG_FILE;
   }
   logging::InitChromeLogging(command_line, file_state);
-  LOG(INFO) << "logging::InitChromeLogging\n";
+  LOG(INFO) << "logging::InitChromeLogging";
 
   return false;
 }
@@ -68,7 +68,7 @@ int ChromeMainDelegate::RunProcess(
 }
 
 void ChromeMainDelegate::ProcessExiting(const std::string& process_type) {
-  LOG(INFO) << "logging::CleanupChromeLogging\n";
+  LOG(INFO) << "logging::CleanupChromeLogging";
   logging::CleanupChromeLogging();
 }
 

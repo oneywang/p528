@@ -15,6 +15,31 @@
 {
   'variables': {
     'chromium_code': 1,
+    'qt_sdk': 'C:/qtbase/qt5.5-vs12',
+    'qt_includes': [
+       '<(qt_sdk)/include',
+       '<(qt_sdk)/include/QtCore',
+       '<(qt_sdk)/include/QtGui',
+       '<(qt_sdk)/include/QtWidgets',
+     ],
+    'qt_libs': [
+      '<(qt_sdk)/lib/Qt5Core.lib',
+      '<(qt_sdk)/lib/Qt5Gui.lib',
+      '<(qt_sdk)/lib/Qt5Widgets.lib',
+      '<(qt_sdk)/lib/Qt5PlatformSupport.lib',
+      '<(qt_sdk)/lib/qtpcre.lib',
+      '<(qt_sdk)/lib/qtharfbuzzng.lib',
+      '<(qt_sdk)/plugins/platforms/qwindows.lib',
+      '<(qt_sdk)/plugins/imageformats/qico.lib',
+    ],
+    'qt_defines': [
+      'QT_NO_DEBUG',
+      'QT_WIDGETS_LIB',
+      'QT_GUI_LIB',
+      'QT_CORE_LIB',
+      'QT_STATICPLUGIN',
+      'QT_STATIC',
+    ],
   },
   #disalbe showincludes in targets but invalid,modify gyp/ninja.py by hand!!!
   'target_defaults': {
@@ -81,6 +106,12 @@
       'target_name': 'chrome_dll',
       'type': 'shared_library',
       'product_name': 'chrome',
+      'include_dirs' : [
+        '<@(qt_includes)',
+      ],
+      'defines':[
+        '<@(qt_defines)',
+      ],
       'sources': [
         'app/logging_chrome.cc',
         'app/logging_chrome.h',
@@ -88,6 +119,7 @@
         'app/chrome_main.cc',
         'app/chrome_main_delegate.cc',
         'app/chrome_main_delegate.h',
+        'app/qtstatic_plugin_import.cc',
       ],
       'dependencies': [
         '<(DEPTH)/base/base.gyp:base',
@@ -100,6 +132,7 @@
           'AdditionalDependencies': [
             'imm32.lib',
             'comctl32.lib',
+            '<@(qt_libs)',
           ],         
         },
       },
@@ -148,6 +181,12 @@
     { #browser.lib
       'target_name': 'browser',
       'type': 'static_library',
+      'include_dirs' : [
+        '<@(qt_includes)',
+      ],
+      'defines':[
+        '<@(qt_defines)',
+      ],
       'sources': [
         'browser/browser_process.cc',
         'browser/browser_process.h',

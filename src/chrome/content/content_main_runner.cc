@@ -148,8 +148,7 @@ class ContentMainRunnerImpl : public ContentMainRunner {
       : is_initialized_(false),
         is_shutdown_(false),
         completed_basic_startup_(false),
-        delegate_(NULL),
-        ui_task_(NULL) {
+        delegate_(NULL){
   }
 
   ~ContentMainRunnerImpl() override {
@@ -183,8 +182,6 @@ class ContentMainRunnerImpl : public ContentMainRunner {
 #endif
 
   int Initialize(const ContentMainParams& params) override {
-    ui_task_ = params.ui_task;
-
     base::EnableTerminationOnOutOfMemory();
     RegisterInvalidParamHandler();
     //ui::win::CreateATLModuleIfNeeded();
@@ -192,13 +189,10 @@ class ContentMainRunnerImpl : public ContentMainRunner {
     is_initialized_ = true;
     delegate_ = params.delegate;
 
-    // The exit manager is in charge of calling the dtors of singleton objects.
-    if (!ui_task_) {
-      // When running browser tests, don't create a second AtExitManager as that
-      // interfers with shutdown when objects created before ContentMain is
-      // called are destructed when it returns.
-      exit_manager_.reset(new base::AtExitManager);
-    }
+    // When running browser tests, don't create a second AtExitManager as that
+    // interfers with shutdown when objects created before ContentMain is
+    // called are destructed when it returns.
+    exit_manager_.reset(new base::AtExitManager);
 
     // On Android, the command line is initialized when library is loaded and
     // we have already started our TRACE_EVENT0.
@@ -266,7 +260,6 @@ class ContentMainRunnerImpl : public ContentMainRunner {
         command_line.GetSwitchValueASCII(switches::kProcessType);
 
     MainFunctionParams main_params(command_line);
-    main_params.ui_task = ui_task_;
     return RunNamedProcessTypeMain(process_type, main_params, delegate_);
   }
 
@@ -316,8 +309,6 @@ class ContentMainRunnerImpl : public ContentMainRunner {
   ContentMainDelegate* delegate_;
 
   scoped_ptr<base::AtExitManager> exit_manager_;
-
-  base::Closure* ui_task_;
 
   DISALLOW_COPY_AND_ASSIGN(ContentMainRunnerImpl);
 };

@@ -453,9 +453,6 @@ void BrowserMainLoop::MainMessageLoopRun() {
   NOTREACHED();
 #else
   DCHECK(base::MessageLoopForUI::IsCurrent());
-  if (parameters_.ui_task)
-    base::MessageLoopForUI::current()->PostTask(FROM_HERE,
-                                                *parameters_.ui_task);
 
   base::RunLoop run_loop;
   run_loop.Run();

@@ -25,16 +25,11 @@ class ContentMainDelegate;
 struct ContentMainParams {
   explicit ContentMainParams(ContentMainDelegate* delegate)
       : delegate(delegate),
-        instance(NULL),
-        ui_task(NULL) {
+        instance(NULL){
   }
 
   ContentMainDelegate* delegate;
   HINSTANCE instance;
-
-  // Used by browser_tests. If non-null BrowserMain schedules this task to run
-  // on the MessageLoop. It's owned by the test code.
-  base::Closure* ui_task;
 };
 
 // ContentMain should be called from the embedder's main() function to do the
