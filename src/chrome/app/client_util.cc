@@ -99,49 +99,6 @@ base::FilePath GetExecutableDir() {
 
 }  // namespace
 
-namespace google_breakpad{
-  bool onMinidumpDumped(const wchar_t* dump_path,
-    const wchar_t* minidump_id,
-    void* context,
-    EXCEPTION_POINTERS* exinfo,
-    MDRawAssertionInfo* assertion,
-    bool succeeded) {
-
-    //todo(hege):restart exe,and show crash dialog
-    return succeeded;
-  }
-
-  bool
-    InitBreakpad()
-  {
-    base::FilePath dumps_dir = GetExecutableDir().Append(L"dumps");
-    base::CreateDirectory(dumps_dir);
-
-    // This is needed for CRT to not show dialog for invalid param
-    // failures and instead let the code handle it.
-    _CrtSetReportMode(_CRT_ASSERT, 0);
-
-    ExceptionHandler *pCrashHandler =
-      new ExceptionHandler(dumps_dir.value(),
-      nullptr, //FilterCallback
-      onMinidumpDumped,
-      NULL, //callback_context
-      ExceptionHandler::HANDLER_ALL, //exception,invalid parameter,purecall
-      (MINIDUMP_TYPE)(MiniDumpNormal | MiniDumpWithHandleData | MiniDumpWithUnloadedModules),//dump_type
-      (const wchar_t*)nullptr,//pipe_name
-      nullptr //custom_info
-      );
-
-    if (pCrashHandler == NULL) {
-      return false;
-    }
-
-    return true;
-  }
-
-}
-
-
 base::string16 GetCurrentModuleVersion() {
   scoped_ptr<FileVersionInfo> file_version_info(
       FileVersionInfo::CreateFileVersionInfoForCurrentModule());
@@ -275,9 +232,6 @@ int MainDllLoader::Launch(HINSTANCE instance) {
   }
   chrome::ChromeCrashReporterClient::PrepareRestartOnCrashEnviroment(cmd_line);
   breakpad::InitCrashReporter(process_type_);
-  //breakpad::ConsumeInvalidHandleExceptions();
-
-  //google_breakpad::InitBreakpad();
 
   dll_ = Load(&version, &file);
   if (!dll_)
@@ -303,8 +257,8 @@ int MainDllLoader::Launch(HINSTANCE instance) {
   // EXCEPTION_INVALID_HANDLE generated on Windows 10 during shutdown of these
   // processes.
   // TODO(wfh): Check whether MS have fixed this in Win10 RTM. crbug.com/456193
-  //if (base::win::GetVersion() >= base::win::VERSION_WIN10)
-  //  breakpad::ConsumeInvalidHandleExceptions();
+  if (base::win::GetVersion() >= base::win::VERSION_WIN10)
+    breakpad::ConsumeInvalidHandleExceptions();
   return rc;
 }
 

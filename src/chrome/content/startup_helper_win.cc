@@ -11,6 +11,8 @@
 #include "base/command_line.h"
 #include "base/win/windows_version.h"
 
+#include <windows.h>
+
 namespace {
 
 #pragma optimize("", off)

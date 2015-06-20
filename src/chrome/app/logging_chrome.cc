@@ -296,9 +296,10 @@ void InitChromeLogging(const base::CommandLine& command_line,
 #endif
 
   // Default to showing error dialogs.
-  if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
-          switches::kNoErrorDialogs))
-    logging::SetShowErrorDialogs(true);
+  //if (!base::CommandLine::ForCurrentProcess()->HasSwitch(
+  //        switches::kNoErrorDialogs))
+  //  logging::SetShowErrorDialogs(true);
+  logging::SetShowErrorDialogs(false);
 
   // we want process and thread IDs because we have a lot of things running
   logging::SetLogItems(true,  // enable_process_id
@@ -310,10 +311,11 @@ void InitChromeLogging(const base::CommandLine& command_line,
   // headless mode to be configured either by the Environment
   // Variable or by the Command Line Switch.  This is for
   // automated test purposes.
-  scoped_ptr<base::Environment> env(base::Environment::Create());
-  if (env->HasVar(env_vars::kHeadless) ||
-      command_line.HasSwitch(switches::kNoErrorDialogs))
-    SuppressDialogs();
+  //scoped_ptr<base::Environment> env(base::Environment::Create());
+  //if (env->HasVar(env_vars::kHeadless) ||
+  //    command_line.HasSwitch(switches::kNoErrorDialogs))
+  //  SuppressDialogs();
+  SuppressDialogs();
 
   // Use a minimum log level if the command line asks for one,
   // otherwise leave it at the default level (INFO).
