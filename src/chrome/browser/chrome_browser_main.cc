@@ -46,6 +46,7 @@
 #include "chrome/content/main_function_params.h"
 
 #include "chrome/browser/abstract_class.h"
+#include "base/debug/dump_without_crashing.h"
 
 using content::BrowserThread;
 
@@ -65,21 +66,21 @@ ChromeBrowserMainParts::~ChromeBrowserMainParts() {
 // -----------------------------------------------------------------------------
 // TODO(viettrungluu): move more/rest of BrowserMain() into BrowserMainParts.
 
-#if defined(OS_WIN)
-#define DLLEXPORT __declspec(dllexport)
+//#if defined(OS_WIN)
+//#define DLLEXPORT __declspec(dllexport)
 
 // We use extern C for the prototype DLLEXPORT to avoid C++ name mangling.
-extern "C" {
-DLLEXPORT void __cdecl RelaunchChromeBrowserWithNewCommandLineIfNeeded();
-}
+//extern "C" {
+//DLLEXPORT void __cdecl RelaunchChromeBrowserWithNewCommandLineIfNeeded();
+//}
 
-DLLEXPORT void __cdecl RelaunchChromeBrowserWithNewCommandLineIfNeeded() {
+//DLLEXPORT void __cdecl RelaunchChromeBrowserWithNewCommandLineIfNeeded() {
   // Need an instance of AtExitManager to handle singleton creations and
   // deletions.  We need this new instance because, the old instance created
   // in ChromeMain() got destructed when the function returned.
-  base::AtExitManager exit_manager;
-}
-#endif
+  //base::AtExitManager exit_manager;
+//}
+//#endif
 
 // content::BrowserMainParts implementation ------------------------------------
 
@@ -170,11 +171,13 @@ void ChromeBrowserMainParts::TestBreakpad(){
   //ok
   //DerefZeroCrash();
   
-  //fail<-__debugbreak
+  //ok<-__debugbreak
   //InvalidParamCrash();
 
-  //fail<-__debreakbreak
+  //ok<-__debreakbreak
   //PureCallCrash();
+
+  //base::debug::DumpWithoutCrashing();
 }
 
 int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {

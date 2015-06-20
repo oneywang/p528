@@ -50,7 +50,7 @@ namespace {
 // The entry point signature of chrome.dll.
   typedef int(__cdecl *DLL_MAIN)(HINSTANCE, void*);
 
-  typedef void(__cdecl *RelaunchChromeBrowserWithNewCommandLineIfNeededFunc)();
+  //typedef void(__cdecl *RelaunchChromeBrowserWithNewCommandLineIfNeededFunc)();
 
 base::LazyInstance<chrome::ChromeCrashReporterClient>::Leaky
     g_chrome_crash_client = LAZY_INSTANCE_INITIALIZER;
@@ -286,7 +286,7 @@ int MainDllLoader::Launch(HINSTANCE instance) {
   //ok
   //printf(NULL);
   
-  //fail
+  //ok
   //__debugbreak();
   //__asm int 3
 
@@ -308,6 +308,7 @@ int MainDllLoader::Launch(HINSTANCE instance) {
   return rc;
 }
 
+/*
 void MainDllLoader::RelaunchChromeBrowserWithNewCommandLineIfNeeded() {
   if (!dll_)
     return;
@@ -323,6 +324,7 @@ void MainDllLoader::RelaunchChromeBrowserWithNewCommandLineIfNeeded() {
     relaunch_function();
   }
 }
+*/
 
 //=============================================================================
 /*

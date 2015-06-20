@@ -69,11 +69,13 @@ namespace {
 // Minidump with stacks, PEB, TEB, and unloaded module list.
 const MINIDUMP_TYPE kSmallDumpType = static_cast<MINIDUMP_TYPE>(
     MiniDumpWithProcessThreadData |  // Get PEB and TEB.
+    MiniDumpWithHandleData |
     MiniDumpWithUnloadedModules);  // Get unloaded modules when available.
 
 // Minidump with all of the above, plus memory referenced from stack.
 const MINIDUMP_TYPE kLargerDumpType = static_cast<MINIDUMP_TYPE>(
     MiniDumpWithProcessThreadData |  // Get PEB and TEB.
+    MiniDumpWithHandleData |
     MiniDumpWithUnloadedModules |  // Get unloaded modules when available.
     MiniDumpWithIndirectlyReferencedMemory);  // Get memory referenced by stack.
 
@@ -105,13 +107,14 @@ char* g_real_terminate_process_stub = NULL;
 */
 }  // namespace
 
+/*
 // Dumps the current process memory.
 extern "C" void __declspec(dllexport) __cdecl DumpProcess() {
   if (g_breakpad) {
     g_breakpad->WriteMinidump();
   }
 }
-
+*/
 // Used for dumping a process state when there is no crash.
 extern "C" void __declspec(dllexport) __cdecl DumpProcessWithoutCrash() {
   if (g_dumphandler_no_crash) {
@@ -126,7 +129,7 @@ base::FilePath GetExecutableDir() {
   ::GetModuleFileNameW(nullptr, path, MAX_PATH);
   return base::FilePath(path).DirName();
 }
-
+/*
 // We need to prevent ICF from folding DumpForHangDebuggingThread() and
 // DumpProcessWithoutCrashThread() together, since that makes them
 // indistinguishable in crash dumps. We do this by making the function
@@ -152,9 +155,9 @@ DWORD WINAPI DumpForHangDebuggingThread(void*) {
 
 MSVC_POP_WARNING()
 MSVC_ENABLE_OPTIMIZE()
-
+*/
 }  // namespace
-
+/*
 // Injects a thread into a remote process to dump state when there is no crash.
 extern "C" HANDLE __declspec(dllexport) __cdecl
 InjectDumpProcessWithoutCrash(HANDLE process) {
@@ -167,7 +170,7 @@ InjectDumpForHangDebugging(HANDLE process) {
   return CreateRemoteThread(process, NULL, 0, DumpForHangDebuggingThread,
                             0, 0, NULL);
 }
-/*
+
 // Returns a string containing a list of all modifiers for the loaded profile.
 std::wstring GetProfileType() {
   std::wstring profile_type;
@@ -533,6 +536,13 @@ void InitCrashReporter(const std::string& process_type_switch) {
   // Disable the message box for assertions.
   _CrtSetReportMode(_CRT_ASSERT, 0);
 
+  // Preserve existing error mode, as discussed at http://t/dmea
+  UINT new_flags = SEM_FAILCRITICALERRORS |
+    SEM_NOGPFAULTERRORBOX |
+    SEM_NOOPENFILEERRORBOX;
+  UINT existing_flags = SetErrorMode(new_flags);
+  SetErrorMode(existing_flags | new_flags);
+
   base::string16 process_type = base::ASCIIToUTF16(process_type_switch);
   if (process_type.empty())
     process_type = L"browser";
@@ -638,7 +648,7 @@ void InitCrashReporter(const std::string& process_type_switch) {
   // See chrome_main.cc for example.
   base::debug::SetDumpWithoutCrashingFunction(&DumpProcessWithoutCrash);
 
-  if (g_breakpad->IsOutOfProcess()) {
+  //if (g_breakpad->IsOutOfProcess()) {
     // Tells breakpad to handle breakpoint and single step exceptions.
     // This might break JIT debuggers, but at least it will always
     // generate a crashdump for these exceptions.
@@ -652,7 +662,7 @@ void InitCrashReporter(const std::string& process_type_switch) {
     }
 #endif
 */
-  }
+  //}
 }
 
 void ConsumeInvalidHandleExceptions() {

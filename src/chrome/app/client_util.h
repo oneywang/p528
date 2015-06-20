@@ -37,7 +37,7 @@ class MainDllLoader {
 
   // Launches a new instance of the browser if the current instance in
   // persistent mode an upgrade is detected.
-  void RelaunchChromeBrowserWithNewCommandLineIfNeeded();
+  //void RelaunchChromeBrowserWithNewCommandLineIfNeeded();
 
  protected:
   // Called after chrome.dll has been loaded but before the entry point
