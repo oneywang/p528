@@ -19,6 +19,7 @@
 #include "build/build_config.h"
 #include "chrome/browser/chrome_content_browser_client.h"
 #include "chrome/common/content_switches.h"
+#include "chrome/app/logging_chrome.h"
 
 namespace{
 
@@ -48,12 +49,13 @@ bool ChromeMainDelegate::BasicStartupComplete(int* exit_code) {
   //  InitializeUserDataDir();
 
   // Android does InitLogging when library is loaded. Skip here.
-  //logging::OldFileDeletionState file_state =
-  //  logging::APPEND_TO_OLD_LOG_FILE;
-  //if (process_type.empty()) {
-  //  file_state = logging::DELETE_OLD_LOG_FILE;
-  //}
-  //logging::InitChromeLogging(command_line, file_state);
+  logging::OldFileDeletionState file_state =
+    logging::APPEND_TO_OLD_LOG_FILE;
+  if (process_type.empty()) {
+    file_state = logging::DELETE_OLD_LOG_FILE;
+  }
+  logging::InitChromeLogging(command_line, file_state);
+  LOG(INFO) << "logging::InitChromeLogging\n";
 
   return false;
 }
@@ -66,7 +68,8 @@ int ChromeMainDelegate::RunProcess(
 }
 
 void ChromeMainDelegate::ProcessExiting(const std::string& process_type) {
-  //logging::CleanupChromeLogging();
+  LOG(INFO) << "logging::CleanupChromeLogging\n";
+  logging::CleanupChromeLogging();
 }
 
 content::ContentBrowserClient*

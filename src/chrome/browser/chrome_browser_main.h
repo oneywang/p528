@@ -52,6 +52,12 @@ class ChromeBrowserMainParts : public content::BrowserMainParts {
   }
 
  private:
+   void TestBreakpad();
+   void DerefZeroCrash();
+   void InvalidParamCrash();
+   void PureCallCrash();
+
+ private:
   // Methods for Main Message Loop -------------------------------------------
 
   int PreCreateThreadsImpl();

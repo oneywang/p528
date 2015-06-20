@@ -22,7 +22,7 @@
 #include "base/version.h"
 #include "base/win/scoped_handle.h"
 #include "base/win/windows_version.h"
-//#include "chrome/app/chrome_crash_reporter_client.h"
+#include "chrome/app/chrome_crash_reporter_client.h"
 //#include "chrome/app/chrome_watcher_client_win.h"
 //#include "chrome/app/chrome_watcher_command_line_win.h"
 #include "chrome/app/client_util.h"
@@ -38,11 +38,13 @@
 //#include "chrome/installer/util/google_update_settings.h"
 //#include "chrome/installer/util/install_util.h"
 //#include "chrome/installer/util/util_constants.h"
-//#include "components/crash/app/breakpad_win.h"
+#include "chrome/breakpad/breakpad_win.h"
 //#include "components/crash/app/crash_reporter_client.h"
 //#include "components/metrics/client_info.h"
 //#include "content/public/app/startup_helper_win.h"
 //#include "sandbox/win/src/sandbox.h"
+#include "breakpad/src/client/windows/handler/exception_handler.h"
+#include "base/files/file_util.h"
 
 namespace {
 // The entry point signature of chrome.dll.
@@ -50,8 +52,8 @@ namespace {
 
   typedef void(__cdecl *RelaunchChromeBrowserWithNewCommandLineIfNeededFunc)();
 
-//base::LazyInstance<chrome::ChromeCrashReporterClient>::Leaky
-//    g_chrome_crash_client = LAZY_INSTANCE_INITIALIZER;
+base::LazyInstance<chrome::ChromeCrashReporterClient>::Leaky
+    g_chrome_crash_client = LAZY_INSTANCE_INITIALIZER;
 
 // Loads |module| after setting the CWD to |module|'s directory. Returns a
 // reference to the loaded module on success, or null on error.
@@ -96,6 +98,49 @@ base::FilePath GetExecutableDir() {
 }
 
 }  // namespace
+
+namespace google_breakpad{
+  bool onMinidumpDumped(const wchar_t* dump_path,
+    const wchar_t* minidump_id,
+    void* context,
+    EXCEPTION_POINTERS* exinfo,
+    MDRawAssertionInfo* assertion,
+    bool succeeded) {
+
+    //todo(hege):restart exe,and show crash dialog
+    return succeeded;
+  }
+
+  bool
+    InitBreakpad()
+  {
+    base::FilePath dumps_dir = GetExecutableDir().Append(L"dumps");
+    base::CreateDirectory(dumps_dir);
+
+    // This is needed for CRT to not show dialog for invalid param
+    // failures and instead let the code handle it.
+    _CrtSetReportMode(_CRT_ASSERT, 0);
+
+    ExceptionHandler *pCrashHandler =
+      new ExceptionHandler(dumps_dir.value(),
+      nullptr, //FilterCallback
+      onMinidumpDumped,
+      NULL, //callback_context
+      ExceptionHandler::HANDLER_ALL, //exception,invalid parameter,purecall
+      (MINIDUMP_TYPE)(MiniDumpNormal | MiniDumpWithHandleData | MiniDumpWithUnloadedModules),//dump_type
+      (const wchar_t*)nullptr,//pipe_name
+      nullptr //custom_info
+      );
+
+    if (pCrashHandler == NULL) {
+      return false;
+    }
+
+    return true;
+  }
+
+}
+
 
 base::string16 GetCurrentModuleVersion() {
   scoped_ptr<FileVersionInfo> file_version_info(
@@ -218,22 +263,32 @@ int MainDllLoader::Launch(HINSTANCE instance) {
   sandbox::SandboxInterfaceInfo sandbox_info = {0};
   content::InitializeSandboxInfo(&sandbox_info);
 */
-  //crash_reporter::SetCrashReporterClient(g_chrome_crash_client.Pointer());
+  crash_reporter::SetCrashReporterClient(g_chrome_crash_client.Pointer());
   bool exit_now = true;
   if (process_type_.empty()) {
-    //if (breakpad::ShowRestartDialogIfCrashed(&exit_now)) {
-    if (false){
+    if (breakpad::ShowRestartDialogIfCrashed(&exit_now)) {
       // We restarted because of a previous crash. Ask user if we should
       // Relaunch. Only for the browser process. See crbug.com/132119.
       if (exit_now)
         return content::RESULT_CODE_NORMAL_EXIT;
     }
   }
-  //breakpad::InitCrashReporter(process_type_);
+  chrome::ChromeCrashReporterClient::PrepareRestartOnCrashEnviroment(cmd_line);
+  breakpad::InitCrashReporter(process_type_);
+  //breakpad::ConsumeInvalidHandleExceptions();
+
+  //google_breakpad::InitBreakpad();
 
   dll_ = Load(&version, &file);
   if (!dll_)
     return chrome::RESULT_CODE_MISSING_DATA;
+
+  //ok
+  //printf(NULL);
+  
+  //fail
+  //__debugbreak();
+  //__asm int 3
 
   scoped_ptr<base::Environment> env(base::Environment::Create());
   env->SetVar(chrome::kChromeVersionEnvVar, base::WideToUTF8(version));

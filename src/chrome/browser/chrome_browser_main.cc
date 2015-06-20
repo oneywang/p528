@@ -45,6 +45,8 @@
 #include "chrome/common/content_switches.h"
 #include "chrome/content/main_function_params.h"
 
+#include "chrome/browser/abstract_class.h"
+
 using content::BrowserThread;
 
 // BrowserMainParts ------------------------------------------------------------
@@ -149,6 +151,32 @@ void ChromeBrowserMainParts::PreBrowserStart() {
 void ChromeBrowserMainParts::PostBrowserStart() {
 }
 
+void ChromeBrowserMainParts::DerefZeroCrash() {
+  int* x = 0;
+  *x = 1;
+  base::debug::Alias(x);
+}
+
+void ChromeBrowserMainParts::InvalidParamCrash() {
+  printf(NULL);
+}
+
+void ChromeBrowserMainParts::PureCallCrash() {
+  google_breakpad::Derived derived;
+  base::debug::Alias(&derived);
+}
+
+void ChromeBrowserMainParts::TestBreakpad(){
+  //ok
+  //DerefZeroCrash();
+  
+  //fail<-__debugbreak
+  //InvalidParamCrash();
+
+  //fail<-__debreakbreak
+  //PureCallCrash();
+}
+
 int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
   browser_process_->PreMainMessageLoopRun();
 
@@ -161,6 +189,11 @@ int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
   run_message_loop_ = true;
 
   // test,quit 5s later
+  base::MessageLoop::current()->PostDelayedTask(
+    FROM_HERE,
+    base::Bind(&ChromeBrowserMainParts::TestBreakpad,base::Unretained(this)),
+    base::TimeDelta::FromSeconds(4));
+
   base::MessageLoop::current()->PostDelayedTask(
     FROM_HERE,
     base::MessageLoop::QuitClosure(),
