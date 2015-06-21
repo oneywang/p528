@@ -12,6 +12,7 @@
 #include "chrome/content/browser_main_parts.h"
 #include "chrome/content/main_function_params.h"
 
+class QApplication;
 class BrowserProcessImpl;
 
 class ChromeBrowserMainParts : public content::BrowserMainParts {
@@ -36,14 +37,6 @@ class ChromeBrowserMainParts : public content::BrowserMainParts {
   void PostMainMessageLoopRun() override;
   void PostDestroyThreads() override;
 
-  // Additional stages for ChromeBrowserMainExtraParts. These stages are called
-  // in order from PreMainMessageLoopRun(). See implementation for details.
-  virtual void PreProfileInit();
-  virtual void PostProfileInit();
-  virtual void PreBrowserStart();
-  virtual void PostBrowserStart();
-
-
   const content::MainFunctionParams& parameters() const {
     return parameters_;
   }
@@ -58,11 +51,6 @@ class ChromeBrowserMainParts : public content::BrowserMainParts {
    void PureCallCrash();
 
  private:
-  // Methods for Main Message Loop -------------------------------------------
-
-  int PreCreateThreadsImpl();
-  int PreMainMessageLoopRunImpl();
-
   // Members initialized on construction ---------------------------------------
 
   const content::MainFunctionParams parameters_;
@@ -74,6 +62,14 @@ class ChromeBrowserMainParts : public content::BrowserMainParts {
   scoped_ptr<BrowserProcessImpl> browser_process_;
 
   bool run_message_loop_;
+
+  // qt stuff
+  QApplication* qt_app_ = nullptr;
+  int qt_argc_ = 0;
+  char** qt_argv_ = nullptr;
+  char *WideToMulti(int codePage, const wchar_t *aw);
+  void QtInit();
+  void QtFini();
 
   DISALLOW_COPY_AND_ASSIGN(ChromeBrowserMainParts);
 };

@@ -48,10 +48,12 @@
 #include "chrome/browser/abstract_class.h"
 #include "base/debug/dump_without_crashing.h"
 
-#include <QString>
-#include <QApplication>
-#include <QDialog>
-#include <QLabel>
+#include <QtCore/QString>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QDialog>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QPushButton>
+#include <shellapi.h>
 
 using content::BrowserThread;
 
@@ -67,25 +69,6 @@ ChromeBrowserMainParts::ChromeBrowserMainParts(
 
 ChromeBrowserMainParts::~ChromeBrowserMainParts() {
 }
-
-// -----------------------------------------------------------------------------
-// TODO(viettrungluu): move more/rest of BrowserMain() into BrowserMainParts.
-
-//#if defined(OS_WIN)
-//#define DLLEXPORT __declspec(dllexport)
-
-// We use extern C for the prototype DLLEXPORT to avoid C++ name mangling.
-//extern "C" {
-//DLLEXPORT void __cdecl RelaunchChromeBrowserWithNewCommandLineIfNeeded();
-//}
-
-//DLLEXPORT void __cdecl RelaunchChromeBrowserWithNewCommandLineIfNeeded() {
-  // Need an instance of AtExitManager to handle singleton creations and
-  // deletions.  We need this new instance because, the old instance created
-  // in ChromeMain() got destructed when the function returned.
-  //base::AtExitManager exit_manager;
-//}
-//#endif
 
 // content::BrowserMainParts implementation ------------------------------------
 
@@ -105,57 +88,77 @@ void ChromeBrowserMainParts::PostMainMessageLoopStart() {
 }
 
 int ChromeBrowserMainParts::PreCreateThreads() {
-  result_code_ = PreCreateThreadsImpl();
+  run_message_loop_ = false;
 
-  if (result_code_ == content::RESULT_CODE_NORMAL_EXIT) {
-  }
+  browser_process_.reset(new BrowserProcessImpl(nullptr,parsed_command_line()));
+  browser_process_->PreCreateThreads();
 
+  QtInit();
+  //qt_app_ = new QApplication(qt_argc_,qt_argv_);
+
+  result_code_ =  content::RESULT_CODE_NORMAL_EXIT;
   return result_code_;
 }
 
-int ChromeBrowserMainParts::PreCreateThreadsImpl() {
-  run_message_loop_ = false;
-
-  {
-    TRACE_EVENT0("startup",
-      "ChromeBrowserMainParts::PreCreateThreadsImpl:InitBrowswerProcessImpl");
-    browser_process_.reset(new BrowserProcessImpl(nullptr,
-                                                  parsed_command_line()));
-  }
-
-  browser_process_->PreCreateThreads();
-
-  return content::RESULT_CODE_NORMAL_EXIT;
-}
-
 void ChromeBrowserMainParts::PreMainMessageLoopRun() {
-  result_code_ = PreMainMessageLoopRunImpl();
+  browser_process_->PreMainMessageLoopRun();
 
+  run_message_loop_ = true;
+  /*
+  // test,quit 5s later
+  base::MessageLoop::current()->PostDelayedTask(
+    FROM_HERE,
+    base::Bind(&ChromeBrowserMainParts::TestBreakpad, base::Unretained(this)),
+    base::TimeDelta::FromSeconds(4));
+
+  base::MessageLoop::current()->PostDelayedTask(
+    FROM_HERE,
+    base::MessageLoop::QuitClosure(),
+    base::TimeDelta::FromSeconds(5));
+  */
+
+  // create mainwindow&show
+  //QPushButton *button = new QPushButton("quit");
+  //QObject::connect(button, &QPushButton::clicked, qt_app_, &QApplication::quit);
+  //button->show();
 }
 
-// PreMainMessageLoopRun calls these extra stages in the following order:
-//  PreMainMessageLoopRunImpl()
-//   ... initial setup, including browser_process_ setup.
-//   PreProfileInit()
-//   ... additional setup, including CreateProfile()
-//   PostProfileInit()
-//   ... additional setup
-//   PreBrowserStart()
-//   ... browser_creator_->Start
-//   PostBrowserStart()
+bool ChromeBrowserMainParts::MainMessageLoopRun(int* result_code) {
+  // Set the result code set in PreMainMessageLoopRun or set above.
+  *result_code = result_code_;
+  if (!run_message_loop_)
+    return true;  // Don't run the default message loop.
 
-void ChromeBrowserMainParts::PreProfileInit() {
+  //DCHECK(base::MessageLoopForUI::IsCurrent());
+  //base::RunLoop run_loop;
+  //run_loop.Run();
+  //qt_app_->exec();
+  //QApplication qt_app(qt_argc_, qt_argv_);
 
+  //QPushButton *button = new QPushButton("quit");
+  //QObject::connect(button, &QPushButton::clicked, &qt_app, &QApplication::quit);
+  //button->show();
+
+  //qt_app.exec();
+  return true;
 }
 
-void ChromeBrowserMainParts::PostProfileInit() {
+void ChromeBrowserMainParts::PostMainMessageLoopRun() {
+  browser_process_->StartTearDown();
 }
 
-void ChromeBrowserMainParts::PreBrowserStart() {
+void ChromeBrowserMainParts::PostDestroyThreads() {
+  browser_process_->PostDestroyThreads();
+  ignore_result(browser_process_.release());
+  delete g_browser_process;
+  g_browser_process = nullptr;
+
+  //delete qt_app_;
+  //qt_app_ = nullptr;
+  QtFini();
 }
 
-void ChromeBrowserMainParts::PostBrowserStart() {
-}
+//////////////////////////////////////////////////////////////////////////
 
 void ChromeBrowserMainParts::DerefZeroCrash() {
   int* x = 0;
@@ -175,7 +178,7 @@ void ChromeBrowserMainParts::PureCallCrash() {
 void ChromeBrowserMainParts::TestBreakpad(){
   //ok
   //DerefZeroCrash();
-  
+
   //ok<-__debugbreak
   //InvalidParamCrash();
 
@@ -188,70 +191,31 @@ void ChromeBrowserMainParts::TestBreakpad(){
   //ok
   QString str = QString::fromWCharArray(L"HelloQt");
   LOG(INFO) << str.toStdString();
-  
-  //int argc = 0;
-  //char** argv = NULL;
-  //(new QCoreApplication(argc, argv))->exec();
 }
 
-int ChromeBrowserMainParts::PreMainMessageLoopRunImpl() {
-  browser_process_->PreMainMessageLoopRun();
+//////////////////////////////////////////////////////////////////////////
 
-  PreProfileInit();
-
-  PostProfileInit();
-
-  PreBrowserStart();
-
-  run_message_loop_ = true;
-
-  // test,quit 5s later
-  base::MessageLoop::current()->PostDelayedTask(
-    FROM_HERE,
-    base::Bind(&ChromeBrowserMainParts::TestBreakpad,base::Unretained(this)),
-    base::TimeDelta::FromSeconds(4));
-
-  base::MessageLoop::current()->PostDelayedTask(
-    FROM_HERE,
-    base::MessageLoop::QuitClosure(),
-    base::TimeDelta::FromSeconds(5));
-
-  PostBrowserStart();
-
-  return result_code_;
+char* ChromeBrowserMainParts::WideToMulti(int codePage, const wchar_t *aw){
+  const int required = WideCharToMultiByte(codePage, 0, aw, -1, NULL, 0, NULL, NULL);
+  char *result = new char[required];
+  WideCharToMultiByte(codePage, 0, aw, -1, result, required, NULL, NULL);
+  return result;
 }
 
-bool ChromeBrowserMainParts::MainMessageLoopRun(int* result_code) {
-  // Set the result code set in PreMainMessageLoopRun or set above.
-  *result_code = result_code_;
-  if (!run_message_loop_)
-    return true;  // Don't run the default message loop.
-
-  DCHECK(base::MessageLoopForUI::IsCurrent());
-  base::RunLoop run_loop;
-
-  //run_loop.Run();
-
-  int argc = 0;
-  char** argv = NULL;
-  QApplication a(argc, argv);
-
-  QDialog *dlg = new QDialog();
-  QLabel *label = new QLabel(dlg);
-  label->setText("HelloQt");
-  dlg->show();
-  a.exec();
-
-  return true;
+void ChromeBrowserMainParts::QtInit(){
+  wchar_t **argvW = CommandLineToArgvW(GetCommandLineW(), &qt_argc_);
+  CHECK(!!argvW);
+  qt_argv_ = new char *[qt_argc_ + 1];
+  for (int i = 0; i < qt_argc_; ++i)
+    qt_argv_[i] = WideToMulti(CP_ACP, argvW[i]);
+  qt_argv_[qt_argc_] = nullptr;
+  LocalFree(argvW);
 }
 
-void ChromeBrowserMainParts::PostMainMessageLoopRun() {
-  browser_process_->StartTearDown();
+void ChromeBrowserMainParts::QtFini(){
+  for (int i = 0; i < qt_argc_ && qt_argv_[i]; ++i)
+    delete[] qt_argv_[i];
+  delete[] qt_argv_;
 }
 
-void ChromeBrowserMainParts::PostDestroyThreads() {
-  browser_process_->PostDestroyThreads();
-  // browser_shutdown takes care of deleting browser_process, so we need to
-  // release it.
-  ignore_result(browser_process_.release());
-}
+//////////////////////////////////////////////////////////////////////////
