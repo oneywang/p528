@@ -48,11 +48,13 @@
 #include "chrome/browser/abstract_class.h"
 #include "base/debug/dump_without_crashing.h"
 
-#include "chrome/browser/messageloop_qt.h"
+#include "chrome/browser/ui/messageloop_qt.h"
 
 #include <QtCore/QString>
 #include <QtWidgets/QPushButton>
 #include <QApplication>
+
+#include "chrome/browser/ui/main_window.h"
 
 using content::BrowserThread;
 
@@ -105,20 +107,27 @@ void ChromeBrowserMainParts::PreMainMessageLoopRun() {
     base::TimeDelta::FromSeconds(5));
 
   // create mainwindow&show
+#if 0
   QPushButton *button = new QPushButton("quit");
   QObject::connect(button, &QPushButton::clicked, QtApp(), &QApplication::quit);
   button->show();
+#else
+  MainWindow *mainwnd = new MainWindow();
+  mainwnd->setMinimumSize(800, 600);
+  mainwnd->showMaximized();
+#endif
 }
 
 bool ChromeBrowserMainParts::MainMessageLoopRun(int* result_code) {
   // Set the result code set in PreMainMessageLoopRun or set above.
   *result_code = result_code_;
 
-
-  //DCHECK(base::MessageLoopForUI::IsCurrent());
-  //base::RunLoop run_loop;
-  //run_loop.Run();
-  //run_message_loop_ = true;
+#if 0
+  DCHECK(base::MessageLoopForUI::IsCurrent());
+  base::RunLoop run_loop;
+  run_loop.Run();
+  return true;
+#endif
 
 #if 0
   QtApp()->exec();
@@ -179,7 +188,7 @@ void ChromeBrowserMainParts::UnitTest(){
   //base::MessageLoop::current()->QuitNow();
 
   //ok,for aboutToBlock
-  base::MessageLoop::current()->QuitWhenIdle();
+  //base::MessageLoop::current()->QuitWhenIdle();
 }
 
 //////////////////////////////////////////////////////////////////////////

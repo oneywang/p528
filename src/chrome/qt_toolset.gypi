@@ -58,7 +58,7 @@
        '<(qt_sdk)/include/QtWidgets',
      ],
      'qt_moc%': '<(qt_sdk)/bin/moc',
-     'moc_src_dir': '<(DEPTH)/chrome/browser',
-     'moc_gen_dir': '<(SHARED_INTERMEDIATE_DIR)/chrome/browser',
+     'moc_src_dir': '<(DEPTH)/chrome/browser/ui',
+     'moc_gen_dir': '<(SHARED_INTERMEDIATE_DIR)/chrome/browser/ui',
   },
 }
