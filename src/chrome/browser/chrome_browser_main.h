@@ -45,7 +45,7 @@ class ChromeBrowserMainParts : public content::BrowserMainParts {
   }
 
  private:
-   void TestBreakpad();
+   void UnitTest();
    void DerefZeroCrash();
    void InvalidParamCrash();
    void PureCallCrash();
@@ -60,16 +60,6 @@ class ChromeBrowserMainParts : public content::BrowserMainParts {
   // Members initialized after / released before main_message_loop_ ------------
 
   scoped_ptr<BrowserProcessImpl> browser_process_;
-
-  bool run_message_loop_;
-
-  // qt stuff
-  QApplication* qt_app_ = nullptr;
-  int qt_argc_ = 0;
-  char** qt_argv_ = nullptr;
-  char *WideToMulti(int codePage, const wchar_t *aw);
-  void QtInit();
-  void QtFini();
 
   DISALLOW_COPY_AND_ASSIGN(ChromeBrowserMainParts);
 };

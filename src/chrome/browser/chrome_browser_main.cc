@@ -48,12 +48,11 @@
 #include "chrome/browser/abstract_class.h"
 #include "base/debug/dump_without_crashing.h"
 
+#include "chrome/browser/messageloop_qt.h"
+
 #include <QtCore/QString>
-#include <QtWidgets/QApplication>
-#include <QtWidgets/QDialog>
-#include <QtWidgets/QLabel>
 #include <QtWidgets/QPushButton>
-#include <shellapi.h>
+#include <QApplication>
 
 using content::BrowserThread;
 
@@ -63,8 +62,7 @@ ChromeBrowserMainParts::ChromeBrowserMainParts(
     const content::MainFunctionParams& parameters)
     : parameters_(parameters),
       parsed_command_line_(parameters.command_line),
-      result_code_(content::RESULT_CODE_NORMAL_EXIT),
-      run_message_loop_(true){
+      result_code_(content::RESULT_CODE_NORMAL_EXIT){
 }
 
 ChromeBrowserMainParts::~ChromeBrowserMainParts() {
@@ -79,21 +77,19 @@ void ChromeBrowserMainParts::PostEarlyInitialization() {
 }
 
 void ChromeBrowserMainParts::ToolkitInitialized() {
+  QtInit();
 }
 
 void ChromeBrowserMainParts::PreMainMessageLoopStart() {
+  base::MessageLoop::InitMessagePumpForUIFactory(QtMessagePumpFactory);
 }
 
 void ChromeBrowserMainParts::PostMainMessageLoopStart() {
 }
 
 int ChromeBrowserMainParts::PreCreateThreads() {
-  run_message_loop_ = false;
-
   browser_process_.reset(new BrowserProcessImpl(nullptr,parsed_command_line()));
   browser_process_->PreCreateThreads();
-
-  QtInit();
 
   result_code_ =  content::RESULT_CODE_NORMAL_EXIT;
   return result_code_;
@@ -102,37 +98,34 @@ int ChromeBrowserMainParts::PreCreateThreads() {
 void ChromeBrowserMainParts::PreMainMessageLoopRun() {
   browser_process_->PreMainMessageLoopRun();
 
-  run_message_loop_ = true;
-  
-  // test,quit 5s later
+  // unittest
   base::MessageLoop::current()->PostDelayedTask(
     FROM_HERE,
-    base::Bind(&ChromeBrowserMainParts::TestBreakpad, base::Unretained(this)),
-    base::TimeDelta::FromSeconds(4));
-
-  base::MessageLoop::current()->PostDelayedTask(
-    FROM_HERE,
-    base::MessageLoop::QuitClosure(),
+    base::Bind(&ChromeBrowserMainParts::UnitTest, base::Unretained(this)),
     base::TimeDelta::FromSeconds(5));
 
   // create mainwindow&show
   QPushButton *button = new QPushButton("quit");
-  QObject::connect(button, &QPushButton::clicked, qt_app_, &QApplication::quit);
+  QObject::connect(button, &QPushButton::clicked, QtApp(), &QApplication::quit);
   button->show();
 }
 
 bool ChromeBrowserMainParts::MainMessageLoopRun(int* result_code) {
   // Set the result code set in PreMainMessageLoopRun or set above.
   *result_code = result_code_;
-  if (!run_message_loop_)
-    return true;  // Don't run the default message loop.
+
 
   //DCHECK(base::MessageLoopForUI::IsCurrent());
   //base::RunLoop run_loop;
   //run_loop.Run();
+  //run_message_loop_ = true;
 
-  qt_app_->exec();
+#if 0
+  QtApp()->exec();
   return true;
+#else
+  return false;
+#endif
 }
 
 void ChromeBrowserMainParts::PostMainMessageLoopRun() {
@@ -165,7 +158,7 @@ void ChromeBrowserMainParts::PureCallCrash() {
   base::debug::Alias(&derived);
 }
 
-void ChromeBrowserMainParts::TestBreakpad(){
+void ChromeBrowserMainParts::UnitTest(){
   //ok
   //DerefZeroCrash();
 
@@ -179,47 +172,14 @@ void ChromeBrowserMainParts::TestBreakpad(){
   //base::debug::DumpWithoutCrashing();
 
   //ok
-  QString str = QString::fromWCharArray(L"HelloQt");
-  LOG(INFO) << str.toStdString();
-}
+  //QString str = QString::fromWCharArray(L"HelloQt");
+  //LOG(INFO) << str.toStdString();
 
-//////////////////////////////////////////////////////////////////////////
+  //ok
+  //base::MessageLoop::current()->QuitNow();
 
-char* ChromeBrowserMainParts::WideToMulti(int codePage, const wchar_t *aw){
-  const int required = WideCharToMultiByte(codePage, 0, aw, -1, NULL, 0, NULL, NULL);
-  char *result = new char[required+1];
-  memset(result, 0, required + 1);
-  WideCharToMultiByte(codePage, 0, aw, -1, result, required, NULL, NULL);
-  return result;
-}
-
-void ChromeBrowserMainParts::QtInit(){
-  wchar_t **argvW = CommandLineToArgvW(GetCommandLineW(), &qt_argc_);
-  CHECK(!!argvW);
-  qt_argv_ = new char *[qt_argc_ + 1];
-  memset(qt_argv_, 0, qt_argc_ + 1);
-  for (int i = 0; i < qt_argc_; ++i)
-    qt_argv_[i] = WideToMulti(CP_ACP, argvW[i]);
-  qt_argv_[qt_argc_] = nullptr;
-  LocalFree(argvW);
-
-  //todo(hege):one exception here,just ingore by pass 0
-#if defined(COMPONENT_BUILD)
-  int argc = 0;
-  char** argv = nullptr;
-  qt_app_ = new QApplication(argc, argv);
-#else  
-  qt_app_ = new QApplication(qt_argc_, qt_argv_);
-#endif
-}
-
-void ChromeBrowserMainParts::QtFini(){
-  delete qt_app_;
-  qt_app_ = nullptr;
-
-  for (int i = 0; i < qt_argc_ && qt_argv_[i]; ++i)
-    delete[] qt_argv_[i];
-  delete[] qt_argv_;
+  //ok,for aboutToBlock
+  base::MessageLoop::current()->QuitWhenIdle();
 }
 
 //////////////////////////////////////////////////////////////////////////

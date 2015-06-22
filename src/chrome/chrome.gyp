@@ -15,64 +15,10 @@
 {
   'variables': {
     'chromium_code': 1,
-    'variables': {    
-      'variables': {
-        'conditions': [
-          ['component=="shared_library"', {
-            'qt_sdk%': 'C:/qtbase/qt5.5-vs12-shared',
-            'qt_defines%': [
-              'QT_NO_DEBUG',
-              'QT_WIDGETS_LIB',
-              'QT_GUI_LIB',
-              'QT_CORE_LIB',
-              'QT_SHARED',
-            ],       
-          },{
-           'qt_sdk%': 'C:/qtbase/qt5.5-vs12',
-           'qt_defines%': [
-              'QT_NO_DEBUG',
-              'QT_WIDGETS_LIB',
-              'QT_GUI_LIB',
-              'QT_CORE_LIB',
-              'QT_STATICPLUGIN',
-              'QT_STATIC',
-            ],
-          },],
-        ],   
-      },
-      'qt_defines%': '<(qt_defines)',
-      'qt_sdk%': '<(qt_sdk)',
-      'conditions': [
-        ['component=="shared_library"', {
-          'qt_libs%': [
-            '<(qt_sdk)/lib/Qt5Core.lib',
-            '<(qt_sdk)/lib/Qt5Gui.lib',
-            '<(qt_sdk)/lib/Qt5Widgets.lib',
-          ],
-        },{
-          'qt_libs%': [
-            '<(qt_sdk)/lib/Qt5Core.lib',
-            '<(qt_sdk)/lib/Qt5Gui.lib',
-            '<(qt_sdk)/lib/Qt5Widgets.lib',
-            '<(qt_sdk)/lib/Qt5PlatformSupport.lib',
-            '<(qt_sdk)/lib/qtpcre.lib',
-            '<(qt_sdk)/lib/qtharfbuzzng.lib',            
-            '<(qt_sdk)/plugins/platforms/qwindows.lib',
-            '<(qt_sdk)/plugins/imageformats/qico.lib',
-          ],
-        },],
-      ],
-    },
-    'qt_defines%': '<(qt_defines)',
-    'qt_sdk%': '<(qt_sdk)',    
-    'qt_libs%': '<(qt_libs)',    
-    'qt_includes': [
-       '<(qt_sdk)/include',
-       '<(qt_sdk)/include/QtCore',
-       '<(qt_sdk)/include/QtGui',
-       '<(qt_sdk)/include/QtWidgets',
-     ],
   },
+  'includes': [
+    'qt_toolset.gypi',
+  ],
   #disalbe showincludes in targets but invalid,modify gyp/ninja.py by hand!!!
   'target_defaults': {
     'msvs_settings': {
@@ -246,11 +192,17 @@
         'browser/chrome_browser_main.h',
         'browser/abstract_class.cc',
         'browser/abstract_class.h',
+        'browser/messageloop_qt.cc',
+        'browser/messageloop_qt.h',
+        
+        # Generated MOC files
+        '<(moc_gen_dir)/moc_messageloop_qt.cc',        
       ],
       'dependencies': [
         '<(DEPTH)/base/base.gyp:base',
         'cr_common',
         'content',
+        'browser_qt_mocs',
       ],
     },
     { #browser.lib
@@ -270,5 +222,23 @@
         'cr_common',
       ],
     },
+    { #browser_qt_mocs
+      'target_name': 'browser_qt_mocs',
+      'type': 'none',
+      'sources': [
+        '<(moc_src_dir)/messageloop_qt.h',
+      ],
+      'rules': [
+        {
+          'rule_name': 'generate_moc',
+          'extension': 'h',
+          'outputs': [ '<(moc_gen_dir)/moc_<(RULE_INPUT_ROOT).cc' ],
+          'action': [ '<(qt_moc)', '-DXXX',
+                      '<(RULE_INPUT_PATH)',
+                      '-o', '<(moc_gen_dir)/moc_<(RULE_INPUT_ROOT).cc' ],
+          'message': 'Generating <(RULE_INPUT_ROOT).cc.',
+        },
+      ],
+    },    
   ],
 }
