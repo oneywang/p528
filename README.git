@@ -1,1 +1,18 @@
-chromium-43.0.2357.125
+miniframework 
+======
+from chromium-43.0.2357.125
+thanks:zcbenz/chromium-source-tarball
+
+how to compile
+======
+1.git clone sunwangme/crbase
+2.add ninja.exe to PATH
+3.python build.py
+4.vs-->src/chrome/chrome.sln
+
+how to set qt
+======
+1.git clone sunwangme/qtbase
+2.build&install shared/static
+
+[end]
