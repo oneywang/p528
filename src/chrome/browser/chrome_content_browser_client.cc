@@ -24,8 +24,7 @@
 namespace chrome {
 
 ChromeContentBrowserClient::ChromeContentBrowserClient()
-    :
-      weak_factory_(this) {
+    :weak_factory_(this) {
 }
 
 ChromeContentBrowserClient::~ChromeContentBrowserClient() {

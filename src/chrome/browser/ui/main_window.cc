@@ -8,6 +8,8 @@
 #include "chrome/browser/ui/position_widget.h"
 #include "chrome/browser/ui/account_widget.h"
 
+#include "base/logging.h"
+
 #include <QTabWidget>
 #include <QHBoxLayout>
 #include <QVBoxLayout>

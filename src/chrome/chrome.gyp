@@ -18,6 +18,7 @@
   },
   'includes': [
     'qt_toolset.gypi',
+    'ctpapi.gypi'
   ],
   #disalbe showincludes in targets but invalid,modify gyp/ninja.py by hand!!!
   'target_defaults': {
@@ -113,6 +114,7 @@
             'imm32.lib',
             'comctl32.lib',
             '<@(qt_libs)',
+            '<@(ctpapi_libs)',
           ],         
         },
       },
@@ -175,6 +177,7 @@
       'type': 'static_library',
       'include_dirs' : [
         '<@(qt_includes)',
+        '<@(ctpapi_includes)',
       ],
       'defines':[
         '<@(qt_defines)',
@@ -193,6 +196,12 @@
         'browser/abstract_class.cc',
         'browser/abstract_class.h',
         
+        # ctp
+        'browser/ctp/mdapi.cc',
+        'browser/ctp/mdapi.h',
+        'browser/ctp/tdapi.cc',
+        'browser/ctp/tdapi.h',
+                
         # browser ui
         'browser/ui/messageloop_qt.cc',
         'browser/ui/messageloop_qt.h',
@@ -231,7 +240,7 @@
         'browser_qt_mocs',
       ],
     },
-    { #browser.lib
+    { #cr_breakpad.lib
       'target_name': 'cr_breakpad',
       'type': 'static_library',
       'sources': [

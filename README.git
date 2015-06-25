@@ -1,6 +1,6 @@
-miniframework 
+p528 
 ======
-from chromium-43.0.2357.125
+almost code from chromium-43.0.2357.125
 thanks:zcbenz/chromium-source-tarball
 
 how to compile
@@ -14,5 +14,19 @@ how to set qt
 ======
 1.git clone sunwangme/qtbase
 2.build&install shared/static
+3.sure:
+static: c:/qtbase/qt5.5-vs12
+shared: c:/qtbase/qt5.5-vs12-shared
+4.add **-shared/bin to PATH
+
+how to set ctp
+======
+1.visit http://www.sfit.com.cn
+2.download ctp sdk
+3.sure copy files to:
+include: headers
+lib: libs
+bin: dlls
+4.add ctp/bin to path
 
 [end]
