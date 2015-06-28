@@ -26,8 +26,9 @@
 #include "breakpad/src/client/windows/handler/exception_handler.h"
 #include "chrome/app/chrome_crash_reporter_client.h"
 #include "chrome/app/client_util.h"
-#include "chrome/app/image_pre_reader_win.h"
 #include "chrome/app/chrome_env_vars.h"
+#include "chrome/app/image_pre_reader_win.h"
+#include "chrome/app/ini_parser.h"
 #include "chrome/crashreport/breakpad_win.h"
 #include "content/content_switches.h"
 #include "content/result_codes.h"
@@ -77,6 +78,22 @@ base::string16 GetCurrentModuleVersion() {
   return base::string16();
 }
 
+base::string16 GetAppConfig(const std::string& key, const base::string16& default_val){
+  base::FilePath module_dir = GetExecutableDir();
+  base::FilePath ini_path = module_dir.Append(L"chrome.ini");
+  std::string ini_content;
+  base::ReadFileToString(ini_path, &ini_content);
+  DictionaryValueINIParser ini_parser;
+  ini_parser.Parse(ini_content);
+  const base::DictionaryValue& root = ini_parser.root();
+  base::string16 val;
+  root.GetString(key, &val);
+  if (val.empty()){
+    val = default_val;
+  }
+  return val;
+}
+
 //=============================================================================
 
 MainDllLoader::MainDllLoader()
@@ -93,10 +110,8 @@ MainDllLoader::~MainDllLoader() {
 // module. This is the expected path for chrome.exe browser instances in an
 // installed build.
 HMODULE MainDllLoader::Load(base::string16* version, base::FilePath* module) {
-  const base::char16* dll_name = nullptr;
-  dll_name = L"chrome.dll";
+  base::string16 dll_name = GetAppConfig("dll.name",L"chrome.dll");
 
-  //const bool pre_read = !metro_mode_;
   const bool pre_read = true;
   base::FilePath module_dir = GetExecutableDir();
   *module = module_dir.Append(dll_name);

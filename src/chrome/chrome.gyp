@@ -52,6 +52,8 @@
         'app/client_util.h',
         'app/image_pre_reader_win.cc',
         'app/image_pre_reader_win.h',
+        'app/ini_parser.cc',
+        'app/ini_parser.h',
         'app/chrome_crash_reporter_client.cc',
         'app/chrome_crash_reporter_client.h',
         'app/chrome_env_vars.cc',
