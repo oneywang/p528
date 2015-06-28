@@ -277,7 +277,7 @@ class BASE_PREFS_EXPORT PrefService : public base::NonThreadSafe {
   // As an example, prefs registration in Chrome is triggered by the
   // functions chrome::RegisterPrefs (for global preferences) and
   // chrome::RegisterProfilePrefs (for user-specific preferences)
-  // implemented in chrome/content/prefs/browser_prefs.cc.
+  // implemented in content/prefs/browser_prefs.cc.
   PrefRegistry* DeprecatedGetPrefRegistry();
 
  protected:

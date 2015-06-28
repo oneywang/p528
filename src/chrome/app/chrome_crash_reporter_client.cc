@@ -1,6 +1,4 @@
-// Copyright 2013 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Copyright by wangtianping. All rights reserved.
 
 #include "chrome/app/chrome_crash_reporter_client.h"
 
@@ -11,14 +9,8 @@
 #include "base/path_service.h"
 #include "base/strings/string_split.h"
 #include "base/strings/utf_string_conversions.h"
-#include "chrome/common/chrome_constants.h"
-//#include "chrome/common/chrome_paths.h"
-#include "chrome/common/chrome_result_codes.h"
-//#include "chrome/common/chrome_switches.h"
-//#include "chrome/common/crash_keys.h"
-#include "chrome/common/env_vars.h"
-#include "chrome/common/content_switches.h"
-#include "chrome/common/chrome_switches.h"
+#include "chrome/app/chrome_env_vars.h"
+#include "content/content_switches.h"
 
 namespace chrome {
 
@@ -33,8 +25,7 @@ bool ChromeCrashReporterClient::ShouldShowRestartDialog(base::string16* title,
                                                         bool* is_rtl_locale) {
   scoped_ptr<base::Environment> env(base::Environment::Create());
   if (!env->HasVar(env_vars::kShowRestart) ||
-      !env->HasVar(env_vars::kRestartInfo) ||
-      env->HasVar(env_vars::kMetroConnected)) {
+      !env->HasVar(env_vars::kRestartInfo)) {
     return false;
   }
 
@@ -67,11 +58,7 @@ bool ChromeCrashReporterClient::AboutToRestart() {
 
 bool ChromeCrashReporterClient::EnableBreakpadForProcess(
     const std::string& process_type) {
-  return process_type == switches::kRendererProcess ||
-         process_type == switches::kPluginProcess ||
-         process_type == switches::kPpapiPluginProcess ||
-         process_type == switches::kZygoteProcess ||
-         process_type == switches::kGpuProcess;
+  return process_type == "browser";
 }
 
 bool ChromeCrashReporterClient::GetShouldDumpLargerDumps(bool is_per_user_install) {
@@ -84,10 +71,6 @@ void ChromeCrashReporterClient::PrepareRestartOnCrashEnviroment(
   // Clear this var so child processes don't show the dialog by default.
   scoped_ptr<base::Environment> env(base::Environment::Create());
   env->UnSetVar(env_vars::kShowRestart);
-
-  // For non-interactive tests we don't restart on crash.
-  if (env->HasVar(env_vars::kHeadless))
-    return;
 
   // If the known command-line test options are used we don't create the
   // environment block which means we don't get the restart dialog.

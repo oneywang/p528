@@ -1,6 +1,6 @@
-// Copyright (c) 2012 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
+// Copyright by wangtianping. All rights reserved.
+
+#include "chrome/app/client_util.h"
 
 #include <windows.h>
 #include <shlwapi.h>
@@ -10,6 +10,7 @@
 #include "base/compiler_specific.h"
 #include "base/environment.h"
 #include "base/file_version_info.h"
+#include "base/files/file_util.h"
 #include "base/lazy_instance.h"
 #include "base/logging.h"
 #include "base/memory/scoped_ptr.h"
@@ -22,35 +23,18 @@
 #include "base/version.h"
 #include "base/win/scoped_handle.h"
 #include "base/win/windows_version.h"
+#include "breakpad/src/client/windows/handler/exception_handler.h"
 #include "chrome/app/chrome_crash_reporter_client.h"
-//#include "chrome/app/chrome_watcher_client_win.h"
-//#include "chrome/app/chrome_watcher_command_line_win.h"
 #include "chrome/app/client_util.h"
 #include "chrome/app/image_pre_reader_win.h"
-//#include "chrome/app/kasko_client.h"
-//#include "chrome/chrome_watcher/chrome_watcher_main_api.h"
-#include "chrome/common/chrome_constants.h"
-//#include "chrome/common/chrome_paths.h"
-#include "chrome/common/chrome_result_codes.h"
-#include "chrome/common/content_switches.h"
-#include "chrome/common/env_vars.h"
-//#include "chrome/installer/util/google_update_constants.h"
-//#include "chrome/installer/util/google_update_settings.h"
-//#include "chrome/installer/util/install_util.h"
-//#include "chrome/installer/util/util_constants.h"
-#include "chrome/breakpad/breakpad_win.h"
-//#include "components/crash/app/crash_reporter_client.h"
-//#include "components/metrics/client_info.h"
-//#include "content/public/app/startup_helper_win.h"
-//#include "sandbox/win/src/sandbox.h"
-#include "breakpad/src/client/windows/handler/exception_handler.h"
-#include "base/files/file_util.h"
+#include "chrome/app/chrome_env_vars.h"
+#include "chrome/crashreport/breakpad_win.h"
+#include "content/content_switches.h"
+#include "content/result_codes.h"
 
 namespace {
 // The entry point signature of chrome.dll.
   typedef int(__cdecl *DLL_MAIN)(HINSTANCE, void*);
-
-  //typedef void(__cdecl *RelaunchChromeBrowserWithNewCommandLineIfNeededFunc)();
 
 base::LazyInstance<chrome::ChromeCrashReporterClient>::Leaky
     g_chrome_crash_client = LAZY_INSTANCE_INITIALIZER;
@@ -72,23 +56,6 @@ HMODULE LoadModuleWithDirectory(const base::FilePath& module, bool pre_read) {
   return ::LoadLibraryExW(module.value().c_str(), nullptr,
                           LOAD_WITH_ALTERED_SEARCH_PATH);
 }
-/*
-void RecordDidRun(const base::FilePath& dll_path) {
-  bool system_level = !InstallUtil::IsPerUserInstall(dll_path);
-  GoogleUpdateSettings::UpdateDidRunState(true, system_level);
-}
-
-void ClearDidRun(const base::FilePath& dll_path) {
-  bool system_level = !InstallUtil::IsPerUserInstall(dll_path);
-  GoogleUpdateSettings::UpdateDidRunState(false, system_level);
-}
-*/
-bool InMetroMode() {
-  return (wcsstr(
-      ::GetCommandLineW(), L" -ServerName:DefaultBrowserServer") != nullptr);
-}
-
-typedef int (*InitMetro)();
 
 // Returns the directory in which the currently running executable resides.
 base::FilePath GetExecutableDir() {
@@ -113,7 +80,7 @@ base::string16 GetCurrentModuleVersion() {
 //=============================================================================
 
 MainDllLoader::MainDllLoader()
-  : dll_(nullptr), metro_mode_(InMetroMode()) {
+  : dll_(nullptr) {
 }
 
 MainDllLoader::~MainDllLoader() {
@@ -128,21 +95,6 @@ MainDllLoader::~MainDllLoader() {
 HMODULE MainDllLoader::Load(base::string16* version, base::FilePath* module) {
   const base::char16* dll_name = nullptr;
   dll_name = L"chrome.dll";
-/*  
-  if (metro_mode_) {
-    dll_name = installer::kChromeMetroDll;
-  } else if (process_type_ == "service" || process_type_.empty()) {
-    dll_name = installer::kChromeDll;
-  } else if (process_type_ == "watcher") {
-    dll_name = kChromeWatcherDll;
-  } else {
-#if defined(CHROME_MULTIPLE_DLL)
-    dll_name = installer::kChromeChildDll;
-#else
-    dll_name = installer::kChromeDll;
-#endif
-  }
-*/
 
   //const bool pre_read = !metro_mode_;
   const bool pre_read = true;
@@ -173,53 +125,11 @@ HMODULE MainDllLoader::Load(base::string16* version, base::FilePath* module) {
 // add custom code in the OnBeforeLaunch callback.
 int MainDllLoader::Launch(HINSTANCE instance) {
   const base::CommandLine& cmd_line = *base::CommandLine::ForCurrentProcess();
-  //process_type_ = cmd_line.GetSwitchValueASCII(switches::kProcessType);
   process_type_ = cmd_line.GetSwitchValueASCII(switches::kProcessType);
 
   base::string16 version;
   base::FilePath file;
-/*
-  if (metro_mode_) {
-    HMODULE metro_dll = Load(&version, &file);
-    if (!metro_dll)
-      return chrome::RESULT_CODE_MISSING_DATA;
 
-    InitMetro chrome_metro_main =
-        reinterpret_cast<InitMetro>(::GetProcAddress(metro_dll, "InitMetro"));
-    return chrome_metro_main();
-  }
-
-  if (process_type_ == "watcher") {
-    chrome::RegisterPathProvider();
-
-    base::win::ScopedHandle parent_process;
-    base::win::ScopedHandle on_initialized_event;
-    if (!InterpretChromeWatcherCommandLine(cmd_line, &parent_process,
-                                           &on_initialized_event)) {
-      return chrome::RESULT_CODE_UNSUPPORTED_PARAM;
-    }
-
-    base::FilePath watcher_data_directory;
-    if (!PathService::Get(chrome::DIR_WATCHER_DATA, &watcher_data_directory))
-      return chrome::RESULT_CODE_MISSING_DATA;
-
-    // Intentionally leaked.
-    HMODULE watcher_dll = Load(&version, &file);
-    if (!watcher_dll)
-      return chrome::RESULT_CODE_MISSING_DATA;
-
-    ChromeWatcherMainFunction watcher_main =
-        reinterpret_cast<ChromeWatcherMainFunction>(
-            ::GetProcAddress(watcher_dll, kChromeWatcherDLLEntrypoint));
-    return watcher_main(chrome::kBrowserExitCodesRegistryPath,
-                        parent_process.Take(), on_initialized_event.Take(),
-                        watcher_data_directory.value().c_str());
-  }
-
-  // Initialize the sandbox services.
-  sandbox::SandboxInterfaceInfo sandbox_info = {0};
-  content::InitializeSandboxInfo(&sandbox_info);
-*/
   crash_reporter::SetCrashReporterClient(g_chrome_crash_client.Pointer());
   bool exit_now = true;
   if (process_type_.empty()) {
@@ -235,24 +145,11 @@ int MainDllLoader::Launch(HINSTANCE instance) {
 
   dll_ = Load(&version, &file);
   if (!dll_)
-    return chrome::RESULT_CODE_MISSING_DATA;
+    return content::RESULT_CODE_MISSING_DATA;
 
-  //ok
-  //printf(NULL);
-  
-  //ok
-  //__debugbreak();
-  //__asm int 3
-
-  scoped_ptr<base::Environment> env(base::Environment::Create());
-  env->SetVar(chrome::kChromeVersionEnvVar, base::WideToUTF8(version));
-
-  OnBeforeLaunch(process_type_, file);
   DLL_MAIN chrome_main =
       reinterpret_cast<DLL_MAIN>(::GetProcAddress(dll_, "ChromeMain"));
-  //int rc = chrome_main(instance, &sandbox_info);
   int rc = chrome_main(instance,nullptr);
-  rc = OnBeforeExit(rc, file);
   // Sandboxed processes close some system DLL handles after lockdown so ignore
   // EXCEPTION_INVALID_HANDLE generated on Windows 10 during shutdown of these
   // processes.
@@ -262,108 +159,8 @@ int MainDllLoader::Launch(HINSTANCE instance) {
   return rc;
 }
 
-/*
-void MainDllLoader::RelaunchChromeBrowserWithNewCommandLineIfNeeded() {
-  if (!dll_)
-    return;
-
-  RelaunchChromeBrowserWithNewCommandLineIfNeededFunc relaunch_function =
-      reinterpret_cast<RelaunchChromeBrowserWithNewCommandLineIfNeededFunc>(
-          ::GetProcAddress(dll_,
-                           "RelaunchChromeBrowserWithNewCommandLineIfNeeded"));
-  if (!relaunch_function) {
-    LOG(ERROR) << "Could not find exported function "
-               << "RelaunchChromeBrowserWithNewCommandLineIfNeeded";
-  } else {
-    relaunch_function();
-  }
-}
-*/
-
 //=============================================================================
-/*
-class ChromeDllLoader : public MainDllLoader {
- protected:
-  // MainDllLoader implementation.
-  void OnBeforeLaunch(const std::string& process_type,
-                      const base::FilePath& dll_path) override;
-  int OnBeforeExit(int return_code, const base::FilePath& dll_path) override;
-
- private:
-  scoped_ptr<ChromeWatcherClient> chrome_watcher_client_;
-#if defined(KASKO)
-  scoped_ptr<KaskoClient> kasko_client_;
-#endif  // KASKO
-};
-
-void ChromeDllLoader::OnBeforeLaunch(const std::string& process_type,
-                                     const base::FilePath& dll_path) {
-  if (process_type.empty()) {
-    RecordDidRun(dll_path);
-
-    // Launch the watcher process if stats collection consent has been granted.
-    if (g_chrome_crash_client.Get().GetCollectStatsConsent()) {
-      base::FilePath exe_path;
-      if (PathService::Get(base::FILE_EXE, &exe_path)) {
-        chrome_watcher_client_.reset(new ChromeWatcherClient(
-            base::Bind(&GenerateChromeWatcherCommandLine, exe_path)));
-        if (chrome_watcher_client_->LaunchWatcher()) {
-#if defined(KASKO)
-          kasko::api::MinidumpType minidump_type = kasko::api::SMALL_DUMP_TYPE;
-          if (base::CommandLine::ForCurrentProcess()->HasSwitch(
-                  switches::kFullMemoryCrashReport)) {
-            minidump_type = kasko::api::FULL_DUMP_TYPE;
-          } else {
-            bool is_per_user_install =
-                g_chrome_crash_client.Get().GetIsPerUserInstall(
-                    base::FilePath(exe_path));
-            if (g_chrome_crash_client.Get().GetShouldDumpLargerDumps(
-                    is_per_user_install)){
-              minidump_type = kasko::api::LARGER_DUMP_TYPE;
-            }
-          }
-
-          kasko_client_.reset(
-              new KaskoClient(chrome_watcher_client_.get(), minidump_type));
-#endif  // KASKO
-        }
-      }
-    }
-  }
-}
-
-int ChromeDllLoader::OnBeforeExit(int return_code,
-                                  const base::FilePath& dll_path) {
-  // NORMAL_EXIT_CANCEL is used for experiments when the user cancels
-  // so we need to reset the did_run signal so omaha does not count
-  // this run as active usage.
-  if (chrome::RESULT_CODE_NORMAL_EXIT_CANCEL == return_code) {
-    ClearDidRun(dll_path);
-  }
-
-#if defined(KASKO)
-  kasko_client_.reset();
-#endif  // KASKO
-  chrome_watcher_client_.reset();
-
-  return return_code;
-}
-*/
-//=============================================================================
-
-class ChromiumDllLoader : public MainDllLoader {
- protected:
-  void OnBeforeLaunch(const std::string& process_type,
-                      const base::FilePath& dll_path) override {}
-  int OnBeforeExit(int return_code, const base::FilePath& dll_path) override {
-    return return_code;
-  }
-};
 
 MainDllLoader* MakeMainDllLoader() {
-//#if defined(GOOGLE_CHROME_BUILD)
-//  return new ChromeDllLoader();
-//#else
-  return new ChromiumDllLoader();
-//#endif
+  return new MainDllLoader();
 }
