@@ -10,10 +10,10 @@
 #include "base/strings/string_split.h"
 #include "base/strings/utf_string_conversions.h"
 #include "chrome/app/chrome_env_vars.h"
+#include "chrome/app/client_util.h"
 #include "content/content_switches.h"
 
 namespace chrome {
-
 
 ChromeCrashReporterClient::ChromeCrashReporterClient() {
 }
@@ -81,9 +81,10 @@ void ChromeCrashReporterClient::PrepareRestartOnCrashEnviroment(
   // The encoding we use for the info is "title|context|direction" where
   // direction is either env_vars::kRtlLocale or env_vars::kLtrLocale depending
   // on the current locale.
-  base::string16 dlg_strings(L"警告");
+  base::string16 dlg_strings = GetAppConfig("crash.title",L"警告");
   dlg_strings.push_back('|');
-  base::string16 adjusted_string(L"软件崩溃了，已帮您重新运行，是否继续？");
+  base::string16 adjusted_string = GetAppConfig("crash.content",
+    L"软件崩溃了，已帮您重新运行，是否继续？");
   //base::i18n::AdjustStringForLocaleDirection(&adjusted_string);
   dlg_strings.append(adjusted_string);
   dlg_strings.push_back('|');
